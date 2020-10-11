@@ -1,0 +1,172 @@
+################################ 4个服务器登录地址 ####################################
+119.36.54.62  / 172.16.25.38  省-正式环境
+22 4254  root/AScp01@lcy!#%246
+80 4255  admin/YGhl@lcy123456
+3306 4256	root/Cacti@123 (root禁止远程登录)  cactiuser/cactiuser
+443 4273
+http://119.36.54.62:4255/itms
+
+119.36.54.62  / 172.16.25.41  地市测试-弃用
+22 4266  root/YGHL@centos7.3
+80 4267	 admin/YGhl@lcy123456
+3306 4268	root/Cacti@123 (root禁止远程登录)  cactiuser/cactiuser
+http://119.36.54.62:4267/itms
+
+119.36.54.62 / 172.16.25.8   区县测试和代码部署
+22 4269  root/YG@centos7.3
+80 4270	 admin/YGhl@lcy123456
+3306 4271   root/Cacti@123 (root禁止远程登录)  cactiuser/cactiuser
+http://119.36.54.62:4270/cacti
+
+113.56.172.156 / 172.16.9.17   二期测试机器
+22 8005  root/YGhl@lcy123456
+80 8006	 admin/YGhl@lcy123456
+3306 8007   root/Cacti@123 (root禁止远程登录)  cactiuser/cactiuser
+443 8008
+http://58.49.40.61:8006/itms
+
+119.36.216.46 / 172.16.9.18		地市正式部署
+22 8101		root/YGhl@ywb123
+80 8102		admin/YGhl@dspt9631
+3306 8103
+
+
+119.36.216.46 / 172.22.250.242
+22 8104 	root/JmGd@20200903
+80 8105		admin/Itms@123456
+3306 8106
+
+119.36.54.30 / 172.16.22.200
+80 8120		admin/Itms@123456
+22	root/123456 需要跳转
+
+
+192.168.1.210   部署的1.2.8版本
+80	admin/Cacti@123
+3306 root/Cacti@123 (root禁止远程登录)  cactiuser/cactiuser
+http://192.168.1.210/itms
+
+################################ 企业邮箱登录 ####################################
+http://qiye.163.com/login
+admin@yghl-hb.com/6Fr8Fx3Gd8
+lcy185@yghl-hb.com/HBgd@yghl159
+itms@yghl-hb.com/HBgd@yghl159
+
+################################ 将代码同步到下属平台 ####################################
+#登录省服务器
+cd /var/www/html/itms/
+tar -zcvf 1.tar.gz --exclude=plugins/assets/upload/* --exclude=plugins/report/excel/* --exclude=plugins/report/phpexcel/* *.php include/ lib/ plugins/
+
+#传到地市
+scp -rp 1.tar.gz root@172.16.25.41:/var/www/html/itms/     
+YGHL@centos7.3      地市密码
+#传到区县
+scp -rp 1.tar.gz root@172.16.25.8:/var/www/html/itms/      
+YG@centos7.3        区县密码
+#传到临时（二期机器）
+scp -rp 1.tar.gz root@172.16.9.17:/var/www/html/itms/ 
+YGhl@lcy123456      二期机器密码
+
+上传完成后，在各自的服务器上解压并且授权
+cd /var/www/html/itms/
+tar -zxvf 1.tar.gz 
+chown apache.apache * -R
+chmod 755 * -R
+rm -rf 1.tar.gz
+
+################################ 制作升级包的方法 ####################################
+cd /var/www/html/
+zip -r itms.zip itms/ -x './itms/rra/*'
+
+cd /root
+unzip itms.zip
+cd itms
+rm -rf log/* plugins/assets/upload/* plugins/report/excel/*
+
+################################ License生成时的公钥和私钥 ####################################
+-----BEGIN PRIVATE KEY-----
+MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBALRL81VvBeVcMs+E
+mf+OgNI66m2xDYaSlLMxNWKcE3cJjMLwoQo0dUmEzp2K370WkPuV49TyNdCo97th
+17k0Uo+qFL7fYXDczq+IfvqWfzAtl4vZfhNm//aL+rkLPVxdci++yOWlZzqPanSC
+Ar0Q/GPHA+6dnYhSwJ6Q/XPyPC8BAgMBAAECgYBJ8AuuMYV9db3wlDSDNPFnRXn1
+2fHuChapFbkK426oFmZ/WybvhGvE5o3E1brDVInIYsO4BExFccWGNq286dQhHizs
+ByMcBDrDkQBLfO0yAGnxRJEIey1jPBHKTrw2mH/ThNDFnyELySozz7FI6YFmSVq6
++YkT14nz6jFTKOeb8QJBANeR1I+foH+C57yZRe4jOhjFEq7rCxoXhP3fBIJ0Wfsk
+xYT8+zcH3qKw+cIUrUHhIChjpyGDgXWEC8+JWbdH0B8CQQDWHI4lF6APDGHquOT1
+PYdiA9/JR+MwKX84LlBcra2kCp+2nML/ZbG09sZJKLF7kTn98eNkIr0iEV896tmg
+xZzfAkBnHMZD/OLUm1UljVs50XfUqU+Kg7tHu8BNfwO1Mtpnmusv9aJkbEs+HtEY
+2LMXNAwhxakICtM91u+fUd+sH5mZAkEAjFDYYryR22rM/KtA+Orivzw0u08ONzDq
+u6G2bpYvVnLT6jPfoso9ZI/YsHcnoQgyjhaoY6ZUdnAWD5jKGI+I1wJAYXFkKxte
+IpPIWzHjnKKS5uQ44aA98TRJBnQ48qMl4qKWFQTyMz7TzgJDMUw04MgWtEWC1ZW0
+qTUFLpF3HNJS5g==
+-----END PRIVATE KEY-----
+
+-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC0S/NVbwXlXDLPhJn/joDSOupt
+sQ2GkpSzMTVinBN3CYzC8KEKNHVJhM6dit+9FpD7lePU8jXQqPe7Yde5NFKPqhS+
+32Fw3M6viH76ln8wLZeL2X4TZv/2i/q5Cz1cXXIvvsjlpWc6j2p0ggK9EPxjxwPu
+nZ2IUsCekP1z8jwvAQIDAQAB
+-----END PUBLIC KEY-----
+
+加密授权的license文件每一行的意思
+第一行：主机个数	0
+第二行：图形个数	1
+第三行：用户个数	2
+第四行：截止日期（秒）	3
+第五行：是否允许报表模块	4
+第六行：是否允许资产管理模块	5
+第七行：是否允许监控大屏模块	6
+第八行：是否允许拓扑图模块	7
+第九行：是否允许报告模块	8
+第十行：授权的企业		9
+第十一行：MAC地址		10
+第十二行：IP地址			11
+第十三行：机器码			12
+
+################################ php文件的加密 ####################################
+使用的框架为 https://github.com/lihancong/tonyenc
+使用的头部标识和密码为
+头部标识： itms2020@hbgd#yghl
+密码： Hbgd@yghl#8g7y*%lcy
+转换为16进制的格式如下
+# 头部标识
+const u_char tonyenc_header[] = {
+        0x69, 0x74, 0x6d, 0x73,
+        0x32, 0x30, 0x32, 0x30,
+        0x40, 0x68, 0x62, 0x67,
+        0x64, 0x23, 0x79, 0x67,
+        0x68, 0x6c
+};
+# 密码
+const u_char tonyenc_key[] = {
+        0x48, 0x62, 0x67, 0x64,
+        0x40, 0x79, 0x67, 0x68,
+        0x6c, 0x23, 0x38, 0x67,
+        0x37, 0x79, 0x2a, 0x25,
+        0x6c, 0x63, 0x79
+};
+加密某个php文件或者某个目录下所有php文件的方法，记得提前备份呀
+php /opt/tonyenc-master/tonyenc.php auth_login.php dir/
+系统中需要加密的几个文件--4月1日又新增文件 graphs.php,graphs_new.php host.php user_admin.php system_authorize.php system_authorize_user.php html.php
+php /opt/tonyenc-master/tonyenc.php /var/www/html/itms/auth_login.php /var/www/html/itms/plugins.php /var/www/html/itms/include/auth.php /var/www/html/itms/lib/user_auth.php /var/www/html/itms/graphs.php /var/www/html/itms/graphs_new.php /var/www/html/itms/host.php /var/www/html/itms/user_admin.php /var/www/html/itms/system_authorize.php /var/www/html/itms/system_authorize_user.php /var/www/html/itms/lib/html.php /var/www/html/itms/include/global_arrays.php /var/www/html/itms/run_machine_code.php
+
+################################ window 远程机器 ####################################
+436530840
+k3wy2Q
+
+ftp主机IP 为 172.16.9.18
+ftp的用户名和密码为 ftpcacti   Cacti@123
+
+QQ告警使用的QQ  2565447642/q19870208  邮箱独立密码 lcy1987
+
+关闭端口的方法
+sys
+interface g 2/0/0
+shutdown
+undo shutdown
+
+################################ 各个机器上打包代码进行本地对比 ####################################
+cd /var/www/html/itms/
+tar -zcvf 1.tar.gz --exclude=plugins/assets/upload/* --exclude=plugins/report/excel/* --exclude=plugins/report/phpexcel/* *.php include/ lib/ plugins/
+sz 1.tar.gz
+rm -rf 1.tar.gz

@@ -1,0 +1,224 @@
+1、部署的时候，最好和现网code的rrd.php进行对比，看看他里面修改了什么，里面似乎有些bug
+
+或者 将最新版本和老版本进行全部比较---工作量很大
+
+2、graph_templates_graph 新增字段  t_notes notes
+
+
+
+比较特殊功能修改地方如下，备注：
+1、聚合图形不出现入口和出口流量字样，只是显示一共
+修改地方 api_aggregate.php 1188行，注释掉 $skipped_items[$k] = $k;
+
+2、图形创建时，模板中选中图形名称可以修改，但是创建图形的时候，图形名称却不能修改。
+修改地方 html_form_template.php 70行 注释掉很多
+
+3、为了在选择多个端口画图形，选择一个端口 图形名称要加上端口；选多个端口 图形名称采用默认。
+修改地方 html_graph.php 546行 提交了一个if
+555行 追加一个 $title1
+
+4、权限认识：
+通过realm id来控制是否可以显示 配置文件在 global_arrays.php 中 1066行
+ $user_auth_realms 、 $user_auth_roles 、 $user_auth_realm_filenames 这三个变量控制的
+
+左侧菜单的是否显示通过 html.php 1233行 draw_menu()方法控制
+
+是否有权限的判断方法：
+is_realm_allowed(realm_id) 判断是否有权限 
+
+经常看到有加入这句话的地方：
+($current_realm_id == -1 || is_realm_allowed($current_realm_id) 
+	|| !isset($user_auth_realm_filenames[$basename]))
+					
+某个用户的所有权限在表中 user_auth_realm 存放
+
+有些realm id 它是写死的，可以通过搜索  realm_allowed 来查找
+
+4.1、修改项目名字为itms
+1、修改数据库settings表，查找
+select * from settings where value like '%cacti%'
+将cacti替换为itms，酌情替换。
+2、修改include/global.php 和 include/config.php
+将$url_path 的值改为 
+$url_path = '/itms/';
+3、注意配置的crontab也要修改
+
+5、文件上传过大的不成功，修改的地方
+csrf-magic.php 将 $GLOBALS['csrf']['defer'] = true; 修改为true
+修改php.ini 将upload_max_filesize 和 post_max_size 修改的足够大
+
+--------------目前还遗留了一个问题，创建图形的权限用按钮控制了，但是创建主机的权限还没有控制，因为创建主机的
+
+5、图形显示的最大值和大屏中最大值不一样，这个其实是有由于统计周期粒度照成的。目前研究了很久，发现图形按5分钟粒度采集数据的话，
+其实数据还是1分钟采集，只是5分钟统计而已。所以5分钟采集的图形，他的最大值，其实是5分钟内的平均而已。
+但是大屏统计的时候，使用的rrd内置的方法， 图形也是使用的rrd内置方法，但是做了一些处理，具体处理流程没有看懂，太长和复杂了。
+
+注意设计的就是两个文件： graph_json.php 和 rrd.php 文件 其中 rrd.php 1166行 rrdtool_function_graph 方法中
+检查发现，如果 1222行 $ds_step 变量是5分钟(300)，数据结果就不对。 因此修改为固定值了 60
+
+
+#####新版本和老版本系统中值偏大的问题，修改文件 rrd.php :722 行。添加了特殊判断，如果是出入口流量的话，
+先将值 乘以 1024 再除以1050
+
+地市平台部署注意事项：
+1、代码全部用省平台的，数据库也是省平台的
+在cacti的安装目录下 创建软连接 rra
+cd /var/www/html
+ln -s /home/rra rra
+
+2、数据库值留下user_auth 表
+3、插件都卸载重新安装一次，然后进入admin用户，将权限重新保存
+
+
+#####检查是否存在snmp_index为空的情况，可以使用如下SQL：
+SELECT * FROM graph_local WHERE 
+    graph_template_id != 0 AND host_id != 0 AND snmp_query_id != 0 AND snmp_index = '';
+
+SELECT * FROM data_local WHERE 
+    data_template_id != 0 AND host_id != 0 AND snmp_query_id != 0 AND snmp_index = '';
+
+
+####查询图形ID和数据ID关联的最准确的查询方式
+SELECT DISTINCT
+dtr.id, gl.id AS local_graph_id, dtr.local_data_id
+FROM data_template_rrd AS dtr
+INNER JOIN graph_templates_item AS gti
+ON gti.task_item_id=dtr.id
+INNER JOIN graph_local AS gl
+ON gl.id=gti.local_graph_id
+WHERE gl.id = 4025
+AND dtr.data_source_name = 'traffic_in'
+
+SELECT DISTINCT gti.local_graph_id
+				FROM graph_templates_item AS gti
+				INNER JOIN data_template_rrd AS dtr
+				ON dtr.local_data_id = ?
+				AND dtr.id=gti.task_item_id
+
+两个功能还没有完成，添加运维管理的功能按钮
+1、将data_local和graph_local中snmp_index_bak 定时同步到 snmp_index中
+2、data_template_data表中由于rrd_step字段和data_source_profiles表中的step字段不一致，导致数据源展示的时候，poller周期出现错误。
+这个问题好像是最开始遗留的问题，现在修改图形数据采集间隔时候，会同步修改data_template_data中的rrd_step字段。
+检查这两个字段不一致的SQL为：
+SELECT a.local_data_id,a.`name_cache`,a.`rrd_step`,b.`step` FROM data_template_data a 
+LEFT JOIN `data_source_profiles` b
+ON a.data_source_profile_id = b.`id`
+WHERE a.`local_data_id` != 0 AND a.`rrd_step` != b.`step`
+
+3、有时候有时候图形不出来的问题汇总
+	一、data_local和graph_local中snmp_index字段丢失导致的，现在发现刷新设备的 接口统计 那个按钮，点击后会出现这两个字段丢失的情况。
+	二、由于图形创建的时候图形的监控周期是1分钟，后来修改为5分钟。这时候通过上面的 问题2 将 data_template_data 中的rrd_step修改为5分钟，
+	并且使用命令 rrdtool tune /var/www/html/itms/rra/x.rra --step 300 修改rra文件的step， 发现修改不起作用，导致图形出不来了，
+	通过命令 rrdtool info /var/www/html/itms/rra/x.rra | grep step 可以看到rra文件的step还是60秒，
+	具体原因还不知道是如何回事。
+	还有一种检查就是点击，某个数据源，打开右上角图形的调试模式，可以看到页面给出的信息，是否说明该图形rra文件有问题。如果有问题，就有可能导致图形不能正常了。
+	或者使用 菜单 排障-数据源，检查某个数据源看看给出的结论。
+	rrdtool 的教程如下：https://oss.oetiker.ch/rrdtool/doc/rrdtool.en.html
+	
+	三、手动出图的方式：
+	a、ssh登录服务器，进入 cd /var/www/html/itms 目录下，
+	b、systemctl stop crond 停止crontab，检查spine进程是否还存在，ps -auxf| grep spine 等到不存在进行下一步。
+	c、在页面中点击 实用工具-系统工具-重建资源缓存
+	d、切换到ssh，执行 /usr/bin/php /var/www/html/cacti/poller.php --force 等待完成。
+	e、开启crontab。 		systemctl start crond
+	f、如果还是不出图的话，还有一个步骤，走到c步骤的时候，执行 php -q cli/rebuild_poller_cache.php，等待重建，然后在往下执行，就可以了
+	
+	四、2020.7.8找了很久，为什么不出图的原因，发现 这个表 data_template_data 中 data_source_profile_id (1-5分钟 300，3-1分钟60)
+	是3 一分钟监控，但是rrd_step都是300。并且这个表data_template_rrd 中 rrd_heartbeat = 600，如果是一分钟监控的话，rrd_heartbeat应该是120
+	因此通过sql语句修改了，然后重新执行第三步操作就可以了。-----------这个问题需要解决
+	
+
+重要：刷新某个设备的端口信息后，不出图了，原因是给删除了 data_local 和 graph_local 中 snmp_index 字段，并且将poller_item中记录也给删除了，导致不出图了。
+为什么会删除 snmp_index 和 poller_item 字段呢？因为他内部使用ifName作为一个检索条件，但是很多设备的端口中ifName没有配置，所以他在刷新的时候，内部将匹配不到，然后将snmp_index 值给清空了。具体可见 data_query.php 296行
+其实有两种解决方式：
+一、目前采用的解决方式：在data_query.php : 174行，加入 $old_sort_field = "ifDescr"; 他默认采用的是ifName，但是目前系统中有好多设备都是ifDescr有值，ifName没有值。
+所以把这个改为ifDescr就可以了。
+
+二、以后要做的，在刷新某个设备端口的时候，他会调用 data_query.php中data_query_update_host_cache_from_buffer方法，执行到1249行会将所有的端口重新录入到
+host_snmp_cache表中，这个时候，只需要在录入完成后，把缺少ifName和ifAlias的记录给补全就可以了（这个sql和处理过程感觉有点复杂）
+ifName的oid前缀为 .1.3.6.1.2.1.31.1.1.1.1. 后面添加snmp_index
+ifAlias的前缀为 .1.3.6.1.2.1.31.1.1.1.18.后面添加snmp_index
+这样做的好处：第一、可以不用使用方式一，不改变他原有结构。第二、没有ifName的端口在创建图形 的时候，不会出现图形名称的输入框，导致创建出来的图形名称都是 "空图形"
+
+
+项目中加密的原理：
+1、在php.ini中添加tonyenc的扩展，这个扩展库就是加密和解密php文件的。具体的配置信息，参考 https://www.jianshu.com/p/6eb1107dac6c
+备注：在编译安装tonyenc的时候，缺少php-devel库，重新安装 yum -y install php70w-devel
+2、从客户机上执行代码生成一个.enc加密文件，将.enc文件传给我们，我们将其解密获取客户的机器码。
+3、根据机器码和其他信息来生成.lic文件，并且将生成的.lic文件传给客户，让客户将.lic文件放置到项目的根目录下
+4、为了放置客户如何查到如何解析.lic文件的，所以使用tonyenc对必要的php文件进行加密，具体查看  "常用命令和登录地址.txt"
+
+修改版本后，需要注意两个地方也要修改：
+1、include/cacti_version文件
+2、数据库表 version 表
+
+目前还有一个不太完善的地方没有修改：
+第一 、报表和拓扑图模块 中 获取图形数据的方法 还没有修改为 rrdtool_function_xport 获取报表，还是通过判断是图形还是data_local获取的，这个需要修改。
+在项目的根目录下添加了一个 rrd_util_functions.php 文件，这个里面提供了工具类供我们常用的的地方来调用
+第二、访问mysql密码需要加密
+
+
+////////////////////////////////--------------------------深信服设备问题汇总
+深信服mibs的问题，将learn/cacti/sangfor-general-and-ssl-mib 拷贝到对应的机器上 /usr/share/snmp/mibs/目录下
+以此执行，
+snmptranslate -Tp -IR SANGFOR-GENERAL-MIB::sangfor 
+snmptranslate -Tz -m SANGFOR-GENERAL-MIB|column -t|head   
+snmptranslate 1.3.6.1.2.1.1.3   
+snmpwalk -v 2c -c sangfor 172.16.3.97
+都不报错，说明没有啥问题了-----好像还是没有搞定
+参考文章 https://www.cnblogs.com/xwupiaomiao/p/11937324.html 
+-----以下是最终的解决方法
+ 在/usr/share/snmp/mibs 下
+snmpwalk -v 2c -c sangfor 172.16.3.97
+检查了好久，发现 cmd_realtime.php 的 192行，获得$session，根据该session去获取oid的信息出现false，所以填的值就是U。而U在图形中不显示
+在snmp.php 的方法 cacti_snmp_get 中报的错误
+CMDPHP WARNING: SNMP Error:'snmp2_get(): Error in packet at 'IF-MIB::ifHCInOctets.3': No Such Instance currently exists at this OID', Device:'172.16.3.97', OID:'.1.3.6.1.2.1.31.1.1.1.6.3'
+上面的提示是IF-MIB::ifHCInOctets.3 这个端口拿不到结果，使用snmpwalk -v 2c -c sangfor 172.16.3.97 > a.txt 可以发现a.txt中对应的端口流量获取方式为IF-MIB::ifInOctets
+所以知道了，就是因为ifHCInOctets 和 ifInOctets 的区别
+修改方式如下：
+	数据采集》数据查询》SNMP接口统计》添加一个 接口 - 深信服(位/秒) 》 里面端口选择 ifInOctets 和 ifOutOctets 在尝试即可
+
+深信服设备vpn登录信息 CeShi@123456
+登录流控设备 https://172.16.3.97 admin/YG@sangfor12#4
+
+
+ifHCOutOctets
+snmpget -v 2c -c sangfor 172.16.3.97 .1.3.6.1.2.1.31.1.1.1.10.3
+ifOutOctets.3
+snmpget -v 2c -c sangfor 172.16.3.97 .1.3.6.1.2.1.2.2.1.16.3
+
+snmpwalk -v 2c -c ctsx526526 192.168.6.102 .1.3.6.1.2.1.31.1.1.1.10.3
+
+通用方式：
+	获取端口eth10
+		snmpwalk -v 2c -c sangfor 172.16.3.97 .1.3.6.1.2.1.2.2.1.2
+	32为 ifInOctets
+		snmpwalk -v 2c -c sangfor 172.16.3.97 .1.3.6.1.2.1.2.2.1.10
+深信服方式
+	eth10 收包 in
+		snmpwalk -v 2c -c sangfor 172.16.3.97 .1.3.6.1.4.1.35047.2.1.2.1.8.1
+	eth10 发包 out
+		snmpwalk -v 2c -c sangfor 172.16.3.97 .1.3.6.1.4.1.35047.2.1.2.1.7.1
+	
+	eth11 收包 in
+		snmpwalk -v 2c -c sangfor 172.16.3.97 .1.3.6.1.4.1.35047.2.1.2.1.8.2
+	eth11 发包 out
+		snmpwalk -v 2c -c sangfor 172.16.3.97 .1.3.6.1.4.1.35047.2.1.2.1.7.2
+
+	eth11 收包in
+		snmpget -v 2c -c sangfor 172.16.3.97 .1.3.6.1.4.1.35047.2.1.8.0.1.11.0
+	eth11 发包 out
+		snmpget -v 2c -c sangfor 172.16.3.97 .1.3.6.1.4.1.35047.2.1.8.0.0.11.0
+		
+深信服设备的问题，主要还是oid不对的问题导致的。通过通用oid获取设备的端口号和它官方给的不一样，导致入库的poller_item表中的arg1的数据不对。
+其实可以通过自定义脚本的方式解决，但是我感觉麻烦，所以还是搞了定时器。每15秒执行一次。在页面中重新新建了设备模板，图形模板，数据模板，数据查询等。
+自定义脚本的文章是：
+https://blog.51cto.com/skypegnu1/1547029
+深信服端口流量的获取方式为，如果端口的名称是eth11，那么其中的id就是11，例如要获取入口流量in：
+.1.3.6.1.4.1.35047.2.1.8.0.1.11.0  其中的11就是端口11的意思，倒数第三位1就是入口流量的意思
+.1.3.6.1.4.1.35047.2.1.8.0.0.11.0  其中的11就是端口11的意思，倒数第三位0就是出口流量的意思
+
+
+
+
+

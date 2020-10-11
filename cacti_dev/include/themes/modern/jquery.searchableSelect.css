@@ -1,0 +1,134 @@
+/*
+Author: David Qin
+E-mail: david@hereapp.cn
+Date: 2014-11-05
+*/
+
+.searchable-select-hide {
+  display: none;
+}
+
+.searchable-select {
+  position: relative;
+  height: 30px;line-height: 30px;
+}
+
+.searchable-select-holder{
+  width:auto;
+  text-align:left;
+  white-space:nowrap;
+  border-radius:4px;
+  border: 1px solid #ccc;
+  color:#555555;
+  font-weight:normal;
+  background:#e6e6e6 url("images/ui-bg_glass_75_e6e6e6_1x400.png") 50% 50% repeat-x;
+  padding: .4em 1em;
+  line-height: normal;
+  margin-right: .1em;
+  overflow: visible;
+  display: inline-block;
+  cursor: pointer;
+}
+.searchable-select-text{
+	float:left;
+	overflow: hidden;
+}
+.searchable-select-caret {
+     background: url(images/ui-icons_454545_256x240.png);
+    background-position: -65px -16px;
+    width: 16px;
+    height: 16px;
+    float: right;
+}
+
+.searchable-select-dropdown {
+  position: absolute;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  padding: 2px;
+  border-top: none;
+  top: 28px;
+  left: 0;
+  right: 0;
+  min-width:120px;
+  z-index: 100;
+}
+
+.searchable-select-input {
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  outline: none;
+  padding: 4px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.searchable-scroll {
+  margin-top: 4px;
+  position: relative;
+}
+
+.searchable-scroll.has-privious {
+  padding-top: 16px;
+}
+
+.searchable-scroll.has-next {
+  padding-bottom: 16px;
+}
+
+.searchable-has-privious {
+  top: 0;
+}
+
+.searchable-has-next {
+  bottom: 0;
+}
+
+.searchable-has-privious, .searchable-has-next {
+  height: 16px;
+  left: 0;
+  right: 0;
+  position: absolute;
+  text-align: center;
+  z-index: 10;
+  background-color: white;
+  line-height: 8px;
+  cursor: pointer;
+}
+
+.searchable-select-items {
+  max-height: 300px;
+  overflow-y: scroll;
+  position: relative;
+}
+
+.searchable-select-items::-webkit-scrollbar {
+  display: none;
+}
+
+.searchable-select-item {
+  padding: 3px 1em 3px .4em;
+  cursor: pointer;
+  box-sizing: border-box;
+  line-height: 16px;
+}
+
+.searchable-select-item.hover {
+	background: -moz-linear-gradient(top, rgba(98,125,77,1) 0%, rgba(31,59,8,1) 100%);
+	background: -webkit-gradient(left top, left bottom, color-stop(0%, rgba(98,125,77,1)), color-stop(100%, rgba(31,59,8,1)));
+	background: -webkit-linear-gradient(top, rgba(98,125,77,1) 0%, rgba(31,59,8,1) 100%);
+	background: -o-linear-gradient(top, rgba(98,125,77,1) 0%, rgba(31,59,8,1) 100%);
+	background: -ms-linear-gradient(top, rgba(98,125,77,1) 0%, rgba(31,59,8,1) 100%);
+	color: snow;
+}
+
+.searchable-select-item.selected {
+  background: -moz-linear-gradient(top, rgba(98,125,77,1) 0%, rgba(31,59,8,1) 100%);
+	background: -webkit-gradient(left top, left bottom, color-stop(0%, rgba(98,125,77,1)), color-stop(100%, rgba(31,59,8,1)));
+	background: -webkit-linear-gradient(top, rgba(98,125,77,1) 0%, rgba(31,59,8,1) 100%);
+	background: -o-linear-gradient(top, rgba(98,125,77,1) 0%, rgba(31,59,8,1) 100%);
+	background: -ms-linear-gradient(top, rgba(98,125,77,1) 0%, rgba(31,59,8,1) 100%);
+	color: snow;
+}
